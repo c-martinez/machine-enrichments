@@ -1,0 +1,301 @@
+---
+swagger: "2.0"
+info:
+  description: |
+    Labs enrichment API: lists (and is a proxy for) various enrichment services
+  version: "0.0.4"
+  title: "Enrichment API"
+basePath: "/api"
+tags:
+- name: status
+  description: Calls which provide service information.
+- name: annotation
+  description: Calls which provide annotations.
+paths:
+  /status:
+    get:
+      summary: Check status of the API provider
+      description: |
+        This call should be used to verify the current status of the API provider. Through this call the provider can inform clients that it is fully functional, or whether there technical issues.
+      operationId: "components.EnrichmentService.getStatus"
+      parameters: []
+      responses:
+        "200":
+          description: "Successful response"
+          schema:
+            $ref: "#/definitions/Response"
+        "500":
+          description: "The API is not alive."
+      tags:
+        - status
+  /capabilities:
+    get:
+      summary: List the capabilities provided by the API provider
+      description: |
+        This call provides a list of the capabilities provided by the API provider. These capabilities specify the type of enrichments which are provided. Each capability may have different data requirement and may return different enrichment data.
+      operationId: "components.EnrichmentService.getCapabilities"
+      parameters: []
+      responses:
+        "200":
+          description: "Successful response"
+          schema:
+            $ref: "#/definitions/CapabilitiesResponse"
+      tags:
+        - status
+  '/annotation/send/{capability}':
+    post:
+      summary: Submit data to be enriched
+      description: |
+        This call is used to submit data to the API provider for enrichment. The data will be enriched using the requested {capability}, which must be one of the capabilities announced via GET /capabilities API call.
+      tags:
+        - annotation
+      operationId: "components.EnrichmentService.sendAnnotation"
+      parameters:
+        - name: capability
+          in: path
+          description: Capability to be used
+          required: True
+          type: string
+        - name: request
+          in: body
+          description: Data to be annotated
+          required: True
+          schema:
+            $ref: '#/definitions/AnnotationSendRequest'
+      responses:
+        "200":
+          description: Successful response
+          schema:
+            $ref: '#/definitions/AnnotationSendResponse'
+        "404":
+          description: Unknown capability
+  '/annotation/status/':
+    post:
+      summary: Verify the status of data submitted for enrichment
+      description: |
+        This call is used to verify the status of data previously submitted via the /annotation//send/{capability} call. The /annotation/send/{capability} call returns a 'ticket' which must be supplied to this call.
+
+        The response from this call specifies whether the given tickets are ready to be collected, or they are still pending. Completed tickets can be collected via the /annotation/collect call.
+      tags:
+        - annotation
+      operationId: "components.EnrichmentService.getAnnotationStatus"
+      parameters:
+        - name: request
+          in: body
+          description: List of tickets to be collected
+          required: True
+          schema:
+            $ref: '#/definitions/AnnotationStatusRequest'
+      responses:
+        "200":
+          description: Successful response
+          schema:
+            $ref: '#/definitions/AnnotationStatusResponse'
+  '/annotation/collect/':
+    post:
+      summary: Collect enriched data
+      description: |
+        This call is used to retrieve from the API provider data which has been submitted for enrichment.
+
+        This calls returns the enriched data corresponding to the tickets requested, along with the relevant provenance information for the enriched data.
+      tags:
+        - annotation
+      operationId: "components.EnrichmentService.collectAnnotation"
+      parameters:
+        - name: request
+          in: body
+          description: List of tickets to be collected
+          required: True
+          schema:
+            $ref: '#/definitions/CollectAnnotationRequestBody'
+      responses:
+        "200":
+          description: Successful response
+          schema:
+            $ref: '#/definitions/CollectAnnotationResponse'
+definitions:
+  ResponseStatus:
+    type: "string"
+    description: "Return status for the call"
+    example: "success"
+    enum:
+    - "success"
+    - "error"
+  ResponseMessage:
+    type: "string"
+    description: "Message from the API provider"
+  CapabilitiesResponse:
+    properties:
+      message:
+        $ref: "#/definitions/ResponseMessage"
+      status:
+        $ref: "#/definitions/ResponseStatus"
+      capabilities:
+        type: "array"
+        description: "Array of capabilities"
+        items:
+          $ref: "#/definitions/Capability"
+  Capability:
+    description: "Annotation capability provided"
+    properties:
+      id:
+        type: "string"
+        description: "Identifier of the capability provided"
+      description:
+        type: "string"
+        description: "Short description of the capability provided"
+      parameters:
+        type: "array"
+        description: "List of parameters required to make use of this capability"
+        items:
+          $ref: "#/definitions/ParameterDescription"
+      provides:
+        type: "array"
+        description: "List of annotation enrichments provided by this capability"
+        items:
+          $ref: "#/definitions/EnrichmentDescription"
+  ParameterDescription:
+    description: |
+      Description of a parameter passed to a capability, defined as a name-type pair, where the type specifies how the API provider will handle this parameter.
+    properties:
+      name:
+        type: "string"
+      type:
+        type: "string"
+      description:
+        type: "string"
+  EnrichmentDescription:
+    description: |
+      Description of the data enrichment provided by a given capability -- what does this capability adds to the data?
+    properties:
+      name:
+        type: "string"
+      type:
+        type: "string"
+      description:
+        type: "string"
+  AnnotationEntity:
+    description: Single entity to be annotated
+    properties:
+      id:
+        description: identifier of the entity
+        type: string
+      content:
+        description: data to be sent -- must match schema defined on capabilities
+        type: array
+        items:
+          $ref: "#/definitions/KeyValuePair"
+  KeyValuePair:
+    description: Key-value pair
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+  AnnotationSendRequest:
+    properties:
+      data:
+        type: array
+        items:
+          $ref: "#/definitions/AnnotationEntity"
+  AnnotationSendResponse:
+    properties:
+      message:
+        $ref: "#/definitions/ResponseMessage"
+      status:
+        $ref: "#/definitions/ResponseStatus"
+      annotationStatus:
+        type: "array"
+        description: "Array of annotation status"
+        items:
+          description: Status for each of the entities sent
+          properties:
+            id:
+              description: identifier of the entity
+              type: string
+            status:
+              description: what is the status of this entity
+              type: string
+              enum:
+                - accepted
+                - rejected
+            ticket:
+              description: Unique identifier with which the annotation of the entity will be identified
+              type: string
+  AnnotationStatusRequest:
+    properties:
+      tickets:
+        $ref: '#/definitions/TicketArray'
+  AnnotationStatusResponse:
+    properties:
+      message:
+        $ref: "#/definitions/ResponseMessage"
+      status:
+        $ref: "#/definitions/ResponseStatus"
+      annotationStatus:
+        type: array
+        description: Array of status of each annotation requested
+        items:
+          description: ID-status pairs of annotations requested
+          properties:
+            ticket:
+              $ref: "#/definitions/Ticket"
+            status:
+              description: what is the status of thee annotation
+              type: string
+              enum:
+                - ready
+                - pending
+  Ticket:
+    description: an ID for an annotation
+    type: string
+  TicketArray:
+    description: Array of tickets
+    type: array
+    items:
+      $ref: "#/definitions/Ticket"
+  CollectAnnotationResponse:
+    description: Array of entities which have been annotated
+    properties:
+      message:
+        $ref: "#/definitions/ResponseMessage"
+      status:
+        $ref: "#/definitions/ResponseStatus"
+      annotations:
+        type: array
+        items:
+          $ref: "#/definitions/AnnotatedEntity"
+  CollectAnnotationRequestBody:
+    description: TODO...
+    properties:
+      tickets:
+        $ref: '#/definitions/TicketArray'
+  AnnotatedEntity:
+    description: A single entity which has been annotated
+    properties:
+      ticket:
+        $ref: "#/definitions/Ticket"
+      data:
+        description: The annotated data
+        type: array
+        items:
+          $ref: "#/definitions/AnnotationEntity"
+      provenance:
+        $ref: "#/definitions/ProvenanceInformation"
+
+  ProvenanceInformation:
+    description: Provenance information of the annotation data -- who added what data
+    properties:
+      data:
+        type: array
+        items:
+          $ref: "#/definitions/KeyValuePair"
+  Response:
+    required:
+    - "message"
+    - "status"
+    properties:
+      message:
+        $ref: "#/definitions/ResponseMessage"
+      status:
+        $ref: "#/definitions/ResponseStatus"
