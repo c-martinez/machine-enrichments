@@ -33,14 +33,23 @@ class MachineEnrichments():
 
 
     def _NERDThread(self, text, ticketID):
-        self._dbStatus[ticketID] = 'InProgress';
+        self._dbStatus[ticketID] = 'pending';
 
-        text = text.encode('ascii', 'replace')
-        extractedData = self._nerdClient.extract(text, 'combined', 30)
+        try:
+            text = text.encode('ascii', 'replace')
+            extractedData = self._nerdClient.extract(text, 'combined', 30)
+            self._nerdClient.http.close()
+            #print 'FAKE NERD BEING USED!'
+            #import time
+            #time.sleep(50)
+            #extractedData = 'Some data extracted via fake-NERD'
 
-        # After NERD has completed...
-        self._dbResults[ticketID] = extractedData
-        self._dbStatus[ticketID] = 'Completed'
+            # After NERD has completed...
+            self._dbResults[ticketID] = extractedData
+            self._dbStatus[ticketID] = 'ready'
+        except Exception:
+            self._dbResults[ticketID] = []
+            self._dbStatus[ticketID] = 'failed'
 
     def getAnnotationStatus(self, ticketID):
         status = self._dbStatus[ticketID] if ticketID in self._dbStatus else 'unknown'

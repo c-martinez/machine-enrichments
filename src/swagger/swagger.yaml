@@ -69,7 +69,7 @@ paths:
             $ref: '#/definitions/AnnotationSendResponse'
         "404":
           description: Unknown capability
-  '/annotation/status/':
+  '/annotation/status':
     post:
       summary: Verify the status of data submitted for enrichment
       description: |
@@ -91,7 +91,7 @@ paths:
           description: Successful response
           schema:
             $ref: '#/definitions/AnnotationStatusResponse'
-  '/annotation/collect/':
+  '/annotation/collect':
     post:
       summary: Collect enriched data
       description: |
@@ -246,6 +246,7 @@ definitions:
               enum:
                 - ready
                 - pending
+                - failed
   Ticket:
     description: an ID for an annotation
     type: string

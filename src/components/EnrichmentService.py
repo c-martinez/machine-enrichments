@@ -18,7 +18,6 @@ def getStatus():
     return jsonify(response)
 
 def getCapabilities():
-    # TODO: Get capabilities from MachineEnrichments
     nerdCapability = {
         'id'        : 'nerd',
         'parameters': [
