@@ -1,9 +1,12 @@
-'''Machine enrichment API: lists various enrichment services
+'''Machine enrichment API: lists various enrichment services.
+Current available enrichments:
+
+ - NERD (for further details see http://nerd.eurecom.fr)
 
 Usage:
   app.py  [-p PORT]
 
-  -p port          Port in which the server runs. [default: 1234]
+  -p port          Port in which the server runs. [default: 8081]
 '''
 from docopt import docopt
 

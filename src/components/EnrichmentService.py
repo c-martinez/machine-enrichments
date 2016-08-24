@@ -4,92 +4,116 @@ from .machineenrichments import MachineEnrichments
 import settings
 
 """
-TODO: Document
+The following functions provide 'glue code', to connect the functionality
+provided by the MachineEnrichments class to the Labs enrichment API described
+in the swagger.yaml file.
 """
 
-enrichments = MachineEnrichments()
+_enrichmentProvider = MachineEnrichments()
+
 
 def getStatus():
-    # TODO: Check status of required stuff (DB, if we have one, for instance?)
+    '''Response from the /api/status route'''
     response = {
-        'message'     : 'API is running',
-        'status'      : 'success'
+        'message': 'API is running',
+        'status': 'success'
     }
     return jsonify(response)
 
+
 def getCapabilities():
+    '''Response from the /api/capabilities route'''
     nerdCapability = {
-        'id'        : 'nerd',
+        'id': 'nerd',
         'parameters': [
-            { 'type': '?textBlock',
+            {'type': '?textBlock',
               'name': 'text',
-              'description': 'Text to be annotated' }
+              'description': 'Text to be annotated'}
         ],
         'provides': [
-            { 'type': 'List<String>',
-              'name': 'Entities',
-              'description': 'List of identified entitites' }
+            {'type': 'List<String>',
+             'name': 'Entities',
+             'description': 'List of identified entitites'}
         ],
         'description': 'NERD - Named Entity Recognition and Disambiguation'
     }
     capabilities = []
-    if settings.nerd_api_key!='':
+    if settings.nerd_api_key != '':
         capabilities.append(nerdCapability)
 
     response = {
-        'message'     : 'ok',
-        'status'      : 'success',
+        'message': 'ok',
+        'status': 'success',
         'capabilities': capabilities
     }
     return jsonify(response)
 
+
 def sendAnnotation(capability):
-    if capability=='nerd' and settings.nerd_api_key!='':
+    '''Response from the /api/annotation/send/{capability} route.
+
+    Currently implemented capabilities:
+
+     - nerd
+     '''
+    if capability == 'nerd' and settings.nerd_api_key != '':
         body = request.get_json()
 
         annotationStatus = []
         for item in body['data']:
             # process item using capability...
-            status = enrichments.processNerd(item['id'], item['content'])
+            status = _enrichmentProvider.processNerd(
+                item['id'], item['content'])
             annotationStatus.append(status)
 
         response = {
-              "status": "success",
-              "message": "string",
-              "annotationStatus": annotationStatus
-            }
+            "status": "success",
+            "message": "Annotations received",
+            "annotationStatus": annotationStatus
+        }
     else:
         response = {
-            "status": "Error",
+            "status": "error",
             "message": "Capability not available",
             "annotationStatus": []
-            }
+        }
     return jsonify(response)
 
+
 def getAnnotationStatus():
+    '''Response from the /api/annotation/status route'''
     body = request.get_json()
     tickets = body['tickets']
     ticketStatus = []
     for ticket in tickets:
-        status = enrichments.getAnnotationStatus(ticket)
+        status = _enrichmentProvider.getAnnotationStatus(ticket)
         ticketStatus.append(status)
     response = {
-          "status": "success",
-          "message": "string",
-          "annotationStatus": ticketStatus
-        }
+        "status": "success",
+        "message": "Call succeeded",
+        "annotationStatus": ticketStatus
+    }
     return jsonify(response)
 
+
 def collectAnnotation():
+    '''Response from the /api/annotation/collect route'''
     body = request.get_json()
     tickets = body['tickets']
     annotations = []
     for ticket in tickets:
-        annotation = enrichments.collectAnnotation(ticket)
+        annotation = _enrichmentProvider.collectAnnotation(ticket)
+        if annotation is None:
+            response = {
+                "status": "error",
+                "message": "No annotations were found for ticket: " + ticket,
+                "annotationStatus": []
+            }
+            return jsonify(response)
         annotations.append(annotation)
     response = {
-          "status": "success",
-          "message": "string",
-          "annotations": annotations
-        }
+        "status": "success",
+        "message": "Returning annotations",
+        "annotations": annotations
+    }
     return jsonify(response)
