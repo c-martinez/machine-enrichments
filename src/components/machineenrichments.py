@@ -61,10 +61,13 @@ class MachineEnrichments():
             self._cache.updateTicket(ticketID, 'prov', {
                 'activityId': self._cache.getNextActivityId()
             })
-        except Exception:
+        except:
             # update in cache ticket status and data
             self._cache.updateTicket(ticketID, 'data', [])
             self._cache.updateTicket(ticketID, 'status', 'failed')
+            self._cache.updateTicket(ticketID, 'prov', {
+                'activityId': 'no-activity'
+            })
 
     def getAnnotationStatus(self, ticketID):
         '''Check (in the cache) the status of the given ticketID.'''
