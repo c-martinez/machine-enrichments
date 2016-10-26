@@ -51,7 +51,7 @@ class MachineEnrichments():
 
         try:
             text = text.encode('ascii', 'replace')
-            extractedData = self._nerdClient.extract(text, 'combined', 30)
+            extractedData = self._nerdClient.extract(text, 'nerdml', 30)
             self._nerdClient.http.close()
 
             # After NERD has completed...
@@ -88,7 +88,7 @@ class MachineEnrichments():
             'prov:wasGeneratedBy': 'dive:myActivity' + prov['activityId'],
             'dive:settings': {
                 'URL': 'nerd.eurecom.fr',
-                'extractor': 'combined',
+                'extractor': 'nerdml',
                 'timeout': 30
             }
         }
