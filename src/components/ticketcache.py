@@ -61,11 +61,11 @@ class TicketCache():
             'SELECT origID,data,prov FROM tickets WHERE ticketID=?',
             [ticketID])
         result = c.fetchone()
-        if result is not None:
+        try:
             itemId, content, prov = result
             content = json.loads(content)
             prov = json.loads(prov)
-        else:
+        except:
             itemId, prov, content = None, None, None
 
         return itemId, prov, content
